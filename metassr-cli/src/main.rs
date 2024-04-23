@@ -6,20 +6,22 @@ use clap::Parser;
 use cli::Args;
 use metacall::{loaders, metacall, switch};
 use std::{env::set_current_dir, path::Path};
-
-#[tokio::main(flavor = "current_thread")]
-async fn main() {
+use tokio::runtime::Runtime;
+// #[tokio::main(flavor = "current_thread")]
+fn main() {
     let args = Args::parse();
-
+    let mut rt = tokio::runtime::Runtime::new().unwrap();
     let project_root = Path::new(&args.root);
     set_current_dir(&project_root)
         .map_err(|err| eprintln!("Cannot chdir: {err}"))
         .unwrap();
 
     let _metacall = switch::initialize().unwrap();
-    loaders::from_single_file("ts", ["App.tsx"].concat()).unwrap();
 
-    server_runner(args.port).await.unwrap();
+    loaders::from_single_file("ts", ["App.tsx"].concat()).unwrap();
+    rt.block_on(async {
+        server_runner(args.port).await.unwrap();
+    });
 }
 
 async fn server_runner(port: u16) -> Result<()> {
